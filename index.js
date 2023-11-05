@@ -3,7 +3,8 @@ const app = express()
 require('dotenv').config()
 const port = process.env.PORT || 5000
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const cors = require('cors')
+const cors = require('cors');
+
 
 // middleware
 app.use(express.json())
@@ -42,19 +43,23 @@ async function run() {
 
         // Get All / Category filtered books
         app.get('/api/v1/all-books', async (req, res) => {
-            const category = req.query.category
+            const category = req?.query?.category
+            const availibility = req?.query?.available
+
             let filter = {}
-
-
             // Get Category-wise books
             if (category) {
                 filter.category = category
+            }
+            if (availibility) {
+                filter.qty = { $gt: 0 }
             }
 
             let result = await booksCollection.find(filter).toArray()
             res.send(result)
         })
 
+        // get Single bookbyID
         app.get('/api/v1/Abook/:id', async (req, res) => {
             const id = req.params.id
             let filter = {
@@ -64,11 +69,32 @@ async function run() {
             res.send(result)
         })
 
-
         // Add Book (admin only)
         app.post('/api/v1/addBook', async (req, res) => {
             const book = req.body
             let result = await booksCollection.insertOne(book)
+            res.send(result)
+        })
+
+        //Update a book 
+        app.put('/app/v1/update/:id', async (req, res) => {
+            let id = req.params.id
+            let data = req.body
+            let filter = {
+                _id: new ObjectId(id)
+            }
+            let newBook = {
+                $set: {
+                    name: data.name,
+                    rating: data.rating,
+                    qty: data.qty,
+                    authorName: data.authorName,
+                    img: data.img,
+                    category: data.category
+                }
+            }
+            let option = { upsert: true }
+            let result = await booksCollection.updateOne(filter, newBook, option)
             res.send(result)
         })
 
