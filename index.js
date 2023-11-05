@@ -2,11 +2,12 @@ const express = require('express')
 const app = express()
 require('dotenv').config()
 const port = process.env.PORT || 5000
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const cors = require('cors')
 
 // middleware
 app.use(express.json())
-
+app.use(cors())
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.4pbmvpd.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -39,7 +40,7 @@ async function run() {
             res.send(result)
         })
 
-        // Get All or filtered books
+        // Get All / Category filtered books
         app.get('/api/v1/all-books', async (req, res) => {
             const category = req.query.category
             let filter = {}
@@ -51,6 +52,15 @@ async function run() {
             }
 
             let result = await booksCollection.find(filter).toArray()
+            res.send(result)
+        })
+
+        app.get('/api/v1/Abook/:id', async (req, res) => {
+            const id = req.params.id
+            let filter = {
+                _id: new ObjectId(id)
+            }
+            const result = await booksCollection.findOne(filter)
             res.send(result)
         })
 
