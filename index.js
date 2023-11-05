@@ -56,7 +56,11 @@ async function run() {
 
 
         // Add Book (admin only)
-
+        app.post('/api/v1/addBook', async (req, res) => {
+            const book = req.body
+            let result = await booksCollection.insertOne(book)
+            res.send(result)
+        })
 
         // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
