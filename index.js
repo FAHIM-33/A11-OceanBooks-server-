@@ -27,7 +27,7 @@ const borrowedCollection = client.db('LibraryDB').collection('Borrowed')
 async function run() {
     try {
         client.connect();
-
+        //----------------------------------BORROW APIs-----------------------------------
         // Get borrowed books
         app.get('/api/v1/borrowed', async (req, res) => {
             const userEmail = req.query.email
@@ -41,6 +41,33 @@ async function run() {
             res.send(result)
         })
 
+        app.post('/api/v1/borrow-book', async (req, res) => {
+            const data = req.body
+            let result = await borrowedCollection.insertOne(data)
+            res.send(result)
+        })
+
+        // update QTY
+        app.patch('/api/v1/update-quantity', async (req, res) => {
+            const operation = req.query.operation
+            const data = req.body
+            // console.log(operation, data);
+            let obj = {}
+
+            if (operation == 'decrease') { obj.qty = (data.qty - 1) }
+            if (operation == 'increase') { obj.qty = (data.qty + 1) }
+
+            let filter = { _id: new ObjectId(data.productID) }
+            // let option = { upsert: false }
+            let document = {
+                $set: obj
+            }
+            const result = await booksCollection.updateOne(filter, document)
+            res.send(result)
+        })
+
+
+        //--------------------------------------BOOKS APIs-----------------------------------------
         // Get All / Category filtered books
         app.get('/api/v1/all-books', async (req, res) => {
             const category = req?.query?.category
