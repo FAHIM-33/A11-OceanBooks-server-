@@ -41,24 +41,24 @@ async function run() {
             res.send(result)
         })
 
+        // Boorrow a book
         app.post('/api/v1/borrow-book', async (req, res) => {
             const data = req.body
             let result = await borrowedCollection.insertOne(data)
             res.send(result)
         })
 
-        // update QTY
+        // update QTY Borrow$Return
         app.patch('/api/v1/update-quantity', async (req, res) => {
             const operation = req.query.operation
             const data = req.body
             // console.log(operation, data);
+            let quantity = data.qty
+            if (operation === 'decrease') { quantity -= 1 }
+            if (operation === 'increase') { quantity += 1 }
             let obj = {}
-
-            if (operation == 'decrease') { obj.qty = (data.qty - 1) }
-            if (operation == 'increase') { obj.qty = (data.qty + 1) }
-
+            obj.qty = quantity
             let filter = { _id: new ObjectId(data.productID) }
-            // let option = { upsert: false }
             let document = {
                 $set: obj
             }
@@ -66,6 +66,14 @@ async function run() {
             res.send(result)
         })
 
+        app.delete('/api/v1/return-borrowed/:id', async (req, res) => {
+            const id = req.params.id
+            let filter = {
+                _id: new ObjectId(id)
+            }
+            let result = await borrowedCollection.deleteOne(filter)
+            res.send(result)
+        })
 
         //--------------------------------------BOOKS APIs-----------------------------------------
         // Get All / Category filtered books
