@@ -44,6 +44,16 @@ async function run() {
         // Boorrow a book
         app.post('/api/v1/borrow-book', async (req, res) => {
             const data = req.body
+            
+
+            // Search if the bookd is already borrowed
+            let filter = { productID: data.productID }
+            let isBorrowed = await borrowedCollection.findOne(filter)
+            if (isBorrowed) {
+                return res.send({ exists: true })
+            }
+
+            // If not borrowed, insert and send result.
             let result = await borrowedCollection.insertOne(data)
             res.send(result)
         })
@@ -52,7 +62,6 @@ async function run() {
         app.patch('/api/v1/update-quantity', async (req, res) => {
             const operation = req.query.operation
             const data = req.body
-            // console.log(operation, data);
             let quantity = data.qty
             if (operation === 'decrease') { quantity -= 1 }
             if (operation === 'increase') { quantity += 1 }
@@ -133,8 +142,6 @@ async function run() {
             res.send(result)
         })
 
-        // await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
     }
