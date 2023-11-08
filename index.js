@@ -4,11 +4,39 @@ require('dotenv').config()
 const port = process.env.PORT || 5000
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
+
 
 
 // middleware
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+    origin: [
+        'http://localhost:5173',
+        'https://assignment-11-f750c.web.app'
+    ],
+    credentials: true
+}))
+app.use(cookieParser())
+
+
+// custom middlewares:
+
+const verify = (req, res, next) => {
+    let token = req?.cookies?.AccessToken
+    if (!token) { res.status(401).send({ message: "Unauthorized user" }) }
+
+    jwt.verify(token, process.env.SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: "Unauthorized user" })
+        }
+        req.TokenUserEmail = decoded.email;
+        next()
+    })
+
+}
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.4pbmvpd.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -27,11 +55,30 @@ const borrowedCollection = client.db('LibraryDB').collection('Borrowed')
 async function run() {
     try {
         client.connect();
+
+        // --------------------------------------ACCESS TOKEN---------------------------------
+        app.post('/api/v1/jwt', async (req, res) => {
+            const loggedInUser = req.body
+
+            const token = jwt.sign(loggedInUser, process.env.SECRET, { expiresIn: '10h' });
+
+            const options = {
+                sameSite: 'none',
+                secure: true,
+                httpOnly: true,
+            }
+
+            res.cookie('AccessToken', token, options)
+                .send({ success: true })
+        })
+
+
+
+
         //----------------------------------BORROW APIs-----------------------------------
         // Get borrowed books
         app.get('/api/v1/borrowed', async (req, res) => {
             const userEmail = req.query.email
-
             let filter = {}
             if (userEmail) {
                 filter.email = userEmail
@@ -44,7 +91,7 @@ async function run() {
         // Boorrow a book
         app.post('/api/v1/borrow-book', async (req, res) => {
             const data = req.body
-            
+
 
             // Search if the bookd is already borrowed
             let filter = { productID: data.productID }
@@ -85,6 +132,14 @@ async function run() {
         })
 
         //--------------------------------------BOOKS APIs-----------------------------------------
+        app.get('/api/v1/all-books-verified', verify, async (req, res) => {
+            const currentUser = req?.query?.email
+            const tokenUser = req?.TokenUserEmail
+            if (currentUser !== tokenUser) { return res.status(401).send({ message: "Forbidden Access" }) }
+            let result = await booksCollection.find().toArray()
+            res.send(result)
+        })
+
         // Get All / Category filtered books
         app.get('/api/v1/all-books', async (req, res) => {
             const category = req?.query?.category
@@ -114,8 +169,13 @@ async function run() {
         })
 
         // Add Book (admin only)
-        app.post('/api/v1/addBook', async (req, res) => {
+        app.post('/api/v1/addBook', verify, async (req, res) => {
             const book = req.body
+            const currentUser = req?.query?.email
+            const tokenUser = req?.TokenUserEmail
+
+            if (currentUser !== tokenUser) { return res.status(200).send({ message: "Forbidden Access" }) }
+
             let result = await booksCollection.insertOne(book)
             res.send(result)
         })
