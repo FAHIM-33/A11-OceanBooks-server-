@@ -13,7 +13,6 @@ const cookieParser = require('cookie-parser')
 app.use(express.json())
 app.use(cors({
     origin: [
-        'http://localhost:5173',
         'https://assignment-11-f750c.web.app'
     ],
     credentials: true
@@ -72,6 +71,11 @@ async function run() {
                 .send({ success: true })
         })
 
+        app.post('/api/v1/logout', async (req, res) => {
+            const loggedInUser = req.body
+            res.clearCookie('AccessToken', { maxAge: 0 })
+                .send({ success: true })
+        })
 
 
 
