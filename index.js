@@ -13,6 +13,7 @@ const cookieParser = require('cookie-parser')
 app.use(express.json())
 app.use(cors({
     origin: [
+        // 'http://localhost:5173',
         'https://assignment-11-f750c.web.app'
     ],
     credentials: true
@@ -58,13 +59,18 @@ async function run() {
         // --------------------------------------ACCESS TOKEN---------------------------------
         app.post('/api/v1/jwt', async (req, res) => {
             const loggedInUser = req.body
-
             const token = jwt.sign(loggedInUser, process.env.SECRET, { expiresIn: '10h' });
+
+            // const options = {
+            //     sameSite: 'none',
+            //     secure: true,
+            //     httpOnly: true,
+            // }
 
             const options = {
                 sameSite: 'none',
-                secure: true,
-                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             }
 
             res.cookie('AccessToken', token, options)
